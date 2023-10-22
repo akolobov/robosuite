@@ -39,7 +39,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     demo_path = args.folder
-    hdf5_path = os.path.join(demo_path, "demo.hdf5")
+    hdf5_path = demo_path
     f = h5py.File(hdf5_path, "r")
     env_name = f["data"].attrs["env"]
     env_info = json.loads(f["data"].attrs["env_info"])
@@ -52,16 +52,16 @@ if __name__ == "__main__":
         use_camera_obs=False,
         reward_shaping=True,
         control_freq=20,
+        camera_heights=84,
+        camera_widths=84
     )
 
     # list of all demonstrations episodes
     demos = list(f["data"].keys())
 
-    while True:
-        print("Playing back random episode... (press ESC to quit)")
-
-        # # select an episode randomly
-        ep = random.choice(demos)
+    for d in range(len(demos)):
+        print(f"Playing back demo {d}... (press ESC to quit)")
+        ep = demos[d]
 
         # read the model xml, using the metadata stored in the attribute for this episode
         model_xml = f["data/{}".format(ep)].attrs["model_file"]

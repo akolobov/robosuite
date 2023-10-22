@@ -234,8 +234,35 @@ def input2action(device, robot, active_arm="right", env_configuration=None):
         # Flip z
         drotation[2] = -drotation[2]
         # Scale rotation for teleoperation (tuned for OSC) -- gains tuned for each device
-        drotation = drotation * 1.5 if isinstance(device, Keyboard) else drotation * 50
-        dpos = dpos * 75 if isinstance(device, Keyboard) else dpos * 125
+
+        assert np.all(controller.input_min <=0), f"Minimum input limits must be non-positive. The provided minimum input limits are {controller.input_min}"
+        assert np.all(controller.input_max >=0), f"Maximum input limits must be non-positive. The provided maximum input limits are {controller.input_max}"
+
+        if isinstance(device, Keyboard):
+            dpos_gain = 75
+            drotation_gain = 1.5
+        else:
+            dpos_gain = 125
+            drotation_gain = 50
+
+        idx = 0
+        while idx < len(dpos):
+            if dpos[idx] > 0:
+                dpos_gain = min(controller.input_max[idx] / dpos[idx], dpos_gain)
+            elif dpos[idx] < 0:
+                dpos_gain = min(controller.input_min[idx] / dpos[idx], dpos_gain)
+            idx += 1
+
+        offset_idx = idx
+        while idx - offset_idx < len(drotation):
+            if drotation[idx-offset_idx] > 0:
+                drotation_gain = min(controller.input_max[idx] / drotation[idx-offset_idx], drotation_gain)
+            elif drotation[idx-offset_idx] < 0:
+                drotation_gain = min(controller.input_min[idx] / drotation[idx-offset_idx], drotation_gain)
+            idx += 1
+
+        drotation = drotation * drotation_gain
+        dpos = dpos * dpos_gain
     elif controller.name == "OSC_POSITION":
         dpos = dpos * 75 if isinstance(device, Keyboard) else dpos * 125
     else:
